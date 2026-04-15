@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Generator — NSL Equipment</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .qr-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .qr-label {
+      background: white;
+      color: #111;
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+      border: 2px solid #e0e0e0;
+    }
+    .qr-label canvas, .qr-label img { width: 140px !important; height: 140px !important; }
+    .qr-eq-id   { font-family: monospace; font-weight: 700; font-size: 0.9rem; margin-top: 8px; color: #111; }
+    .qr-eq-name { font-size: 0.72rem; color: #555; margin-top: 3px; }
+    .qr-org     { font-size: 0.65rem; color: #888; margin-top: 6px; border-top: 1px solid #eee; padding-top: 5px; }
+
+    @media print {
+      .header, .page > .card, .no-print { display: none !important; }
+      body { background: white; padding: 0; }
+      .qr-grid { grid-template-columns: repeat(3, 1fr); }
+      .qr-label { break-inside: avoid; border: 1.5px solid #ccc; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-brand">
+    <a href="admin.html" class="back-btn" style="margin-right:4px;">← Admin</a>
+    <div>
+      <div class="header-title">QR Code Generator</div>
+      <div class="header-sub">Print labels for equipment</div>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- Single QR Generator -->
+  <div class="card no-print">
+    <div class="card-title" style="margin-bottom:14px;">Generate Single QR Code</div>
+    <div class="form-row" style="margin-bottom:12px;">
+      <div class="form-group">
+        <label class="form-label">Equipment ID</label>
+        <input type="text" id="singleId" placeholder="EQ001" style="text-transform:uppercase;"
+               onkeydown="if(event.key==='Enter') generateSingle()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Equipment Name (optional)</label>
+        <input type="text" id="singleName" placeholder="Main Motor — Pump A">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="generateSingle()">Generate QR</button>
+  </div>
+
+  <!-- Bulk Generator -->
+  <div class="card no-print">
+    <div class="card-title" style="margin-bottom:10px;">Bulk Generator</div>
+    <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:12px;">
+      Enter one equipment ID per line (optionally: <code>ID,Name</code>)
+    </p>
+    <textarea id="bulkInput" rows="6" placeholder="EQ001,Main Motor&#10;EQ002,Pump Motor&#10;EQ003"></textarea>
+    <button class="btn btn-primary" style="margin-top:10px;" onclick="generateBulk()">Generate All QR Codes</button>
+  </div>
+
+  <div id="alert" class="alert no-print"></div>
+
+  <!-- Print Controls -->
+  <div id="printControls" style="display:none;" class="no-print">
+    <div style="display:flex; gap:10px; margin-bottom:16px;">
+      <button class="btn btn-success" onclick="window.print()">🖨️ Print All QR Codes</button>
+      <button class="btn btn-ghost" onclick="clearAll()">🗑️ Clear</button>
+    </div>
+  </div>
+
+  <!-- QR Output Grid -->
+  <div class="qr-grid" id="qrGrid"></div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="js/config.js"></script>
+<script>
+  function buildUrl(id) {
+    return `${CONFIG.APP_BASE_URL}/equipment.html?id=${encodeURIComponent(id)}`;
+  }
+
+  function createQRCard(id, name) {
+    const card = document.createElement('div');
+    card.className = 'qr-label';
+
+    const qrDiv = document.createElement('div');
+    qrDiv.id = `qr-${id}`;
+    card.appendChild(qrDiv);
+
+    const idEl = document.createElement('div');
+    idEl.className = 'qr-eq-id';
+    idEl.textContent = id;
+    card.appendChild(idEl);
+
+    if (name) {
+      const nameEl = document.createElement('div');
+      nameEl.className = 'qr-eq-name';
+      nameEl.textContent = name;
+      card.appendChild(nameEl);
+    }
+
+    const org = document.createElement('div');
+    org.className = 'qr-org';
+    org.textContent = 'NSL Unit 2 — MRN Group';
+    card.appendChild(org);
+
+    document.getElementById('qrGrid').appendChild(card);
+
+    new QRCode(qrDiv, {
+      text:         buildUrl(id),
+      width:        140,
+      height:       140,
+      colorDark:    '#000000',
+      colorLight:   '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+  }
+
+  function generateSingle() {
+    const id   = document.getElementById('singleId').value.trim().toUpperCase();
+    const name = document.getElementById('singleName').value.trim();
+    if (!id) { showAlert('Enter an equipment ID', 'warning'); return; }
+    createQRCard(id, name);
+    document.getElementById('printControls').style.display = 'block';
+  }
+
+  function generateBulk() {
+    const lines = document.getElementById('bulkInput').value.trim().split('\n').filter(Boolean);
+    if (!lines.length) { showAlert('Enter at least one equipment ID', 'warning'); return; }
+    lines.forEach(line => {
+      const [id, ...rest] = line.split(',');
+      const trimId = id.trim().toUpperCase();
+      const name   = rest.join(',').trim();
+      if (trimId) createQRCard(trimId, name);
+    });
+    document.getElementById('printControls').style.display = 'block';
+  }
+
+  function clearAll() {
+    document.getElementById('qrGrid').innerHTML = '';
+    document.getElementById('printControls').style.display = 'none';
+  }
+
+  function showAlert(msg, type) {
+    const el = document.getElementById('alert');
+    el.className = `alert show alert-${type}`;
+    el.textContent = msg;
+    setTimeout(() => el.classList.remove('show'), 3000);
+  }
+
+  // Pre-fill if ?id= passed in URL (from admin panel)
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (id) {
+      document.getElementById('singleId').value = id;
+      generateSingle();
+    }
+  });
+</script>
+</body>
+</html>

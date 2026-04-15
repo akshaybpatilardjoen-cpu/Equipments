@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Equipment Details — NSL Maintenance Tracking">
+  <meta name="theme-color" content="#FF6B35">
+  <title>Equipment — NSL</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header class="header">
+  <div class="header-brand">
+    <a href="index.html" class="back-btn" style="margin-right:4px;">← Back</a>
+    <div>
+      <div class="header-title">Equipment Details</div>
+      <div class="header-sub" id="headerSub">Loading…</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <a href="admin.html" class="btn btn-ghost btn-sm">🔐</a>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- ── Alert ──────────────────────────────────────────────────────────── -->
+  <div id="alert" class="alert"></div>
+
+  <!-- ── Loading State ──────────────────────────────────────────────────── -->
+  <div id="loadingState">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading equipment data…</div>
+  </div>
+
+  <!-- ── Error State ────────────────────────────────────────────────────── -->
+  <div id="errorState" style="display:none;">
+    <div class="card" style="text-align:center; padding:40px 20px;">
+      <div style="font-size:2.5rem; margin-bottom:12px;">⚠️</div>
+      <h2 style="margin-bottom:8px;">Equipment Not Found</h2>
+      <p id="errorMsg" style="color:var(--text-muted); margin-bottom:20px;"></p>
+      <a href="index.html" class="btn btn-primary">← Go Back</a>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <h3 style="margin-bottom:8px;">API Not Configured?</h3>
+      <p style="font-size:0.82rem; color:var(--text-muted); line-height:1.6;">
+        If you haven't set up Google Apps Script yet, open <strong>js/config.js</strong>
+        and replace <code style="color:var(--orange);">YOUR_SCRIPT_ID</code> with your deployed script URL.
+        See <strong>README.md</strong> for step-by-step instructions.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Main Content ───────────────────────────────────────────────────── -->
+  <div id="mainContent" style="display:none;" class="fade-in">
+
+    <!-- Hero Card -->
+    <div class="hero-card">
+      <div class="eq-id mono" id="eqId"></div>
+      <div class="eq-name" id="eqName"></div>
+      <div class="eq-specs" id="eqSpecs"></div>
+    </div>
+
+    <!-- Technical Specs -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔧 Technical Specifications</span>
+        <span class="badge badge-green">Active</span>
+      </div>
+      <div class="detail-grid" id="detailGrid"></div>
+    </div>
+
+    <!-- Maintenance History -->
+    <div class="card">
+      <div class="card-header" style="margin-bottom:12px;">
+        <span class="card-title">📋 Maintenance History</span>
+        <span style="font-size:0.75rem; color:var(--text-muted);" id="historyCount"></span>
+      </div>
+      <div id="historyList"></div>
+    </div>
+
+    <!-- Add Record Toggle -->
+    <button id="toggleFormBtn" class="btn btn-success btn-block" onclick="toggleForm()" style="margin-bottom:16px;">
+      ➕ Add Maintenance Record
+    </button>
+
+    <!-- Add Record Form (hidden by default) -->
+    <div id="formWrapper" style="display:none;">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">✍️ New Maintenance Record</span>
+        </div>
+
+        <div class="alert alert-warning show" style="margin-bottom:16px;">
+          📌 Records go to <strong>Pending</strong> for admin approval before appearing in history.
+        </div>
+
+        <form id="addRecordForm" onsubmit="submitRecord(event)">
+
+          <!-- Hidden: auto-filled -->
+          <input type="hidden" id="recEquipId">
+
+          <div class="form-group">
+            <label class="form-label">Equipment Name *</label>
+            <input type="text" id="recEquipName" placeholder="Auto-filled" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Service Date *</label>
+              <input type="date" id="recDate" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status *</label>
+              <select id="recStatus" required>
+                <option value="">Select…</option>
+                <option value="Completed">✓ Completed</option>
+                <option value="Pending">⏳ Pending</option>
+                <option value="Failed">✕ Failed</option>
+                <option value="Partial">◐ Partial</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Task Performed *</label>
+            <input type="text" id="recTask" placeholder="e.g. Bearing replacement, Motor rewinding…" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Technician Name *</label>
+              <input type="text" id="recTechnician" placeholder="Your name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hours Spent</label>
+              <input type="number" id="recHours" placeholder="2.5" step="0.5" min="0">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Parts / Materials Used</label>
+            <input type="text" id="recParts" placeholder="e.g. 6309 Bearing × 2, Coupling gasket">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes / Observations</label>
+            <textarea id="recNotes" placeholder="Any unusual findings, measurements, recommendations…"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Next Service Due</label>
+            <input type="date" id="recNextService">
+          </div>
+
+          <div class="btn-group">
+            <button type="submit" id="submitBtn" class="btn btn-success">📤 Submit for Approval</button>
+            <button type="button" class="btn btn-ghost" onclick="toggleForm(false)">Cancel</button>
+          </div>
+
+        </form>
+      </div>
+    </div><!-- /formWrapper -->
+
+  </div><!-- /mainContent -->
+
+</div><!-- /page -->
+
+<footer class="footer">
+  NSL Equipment History v3.0
+</footer>
+
+<script>
+  // Set header sub dynamically once page loads
+  const _id = new URLSearchParams(window.location.search).get('id') || '';
+  document.getElementById('headerSub').textContent = _id;
+</script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

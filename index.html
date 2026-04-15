@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NSL Equipment History — Scan a QR code or search for equipment">
+  <meta name="theme-color" content="#FF6B35">
+  <title>NSL Equipment History</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">⚙</div>
+    <div>
+      <div class="header-title">NSL Equipment History</div>
+      <div class="header-sub">MRN Group — NSL Unit 2</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <a href="admin.html" class="btn btn-ghost btn-sm">🔐 Admin</a>
+  </div>
+</header>
+
+<!-- ── Nav Tabs ─────────────────────────────────────────────────────────────── -->
+<nav class="nav-tabs">
+  <button class="nav-tab active" data-tab="home"   onclick="setActiveTab('home')">🏠 Home</button>
+  <button class="nav-tab"        data-tab="scan"   onclick="setActiveTab('scan')">📷 Scan QR</button>
+  <button class="nav-tab"        data-tab="browse" onclick="setActiveTab('browse')">📋 Browse</button>
+</nav>
+
+<!-- ── Alert ────────────────────────────────────────────────────────────────── -->
+<div class="page">
+  <div id="alert" class="alert"></div>
+
+  <!-- ── HOME ────────────────────────────────────────────────────────────── -->
+  <div id="tab-home" class="tab-section">
+
+    <!-- Stats Row -->
+    <div class="stats-grid" style="margin-top:4px;">
+      <div class="stat-box">
+        <div class="stat-num" id="statEquip">—</div>
+        <div class="stat-label">Equipment</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--green);">✓</div>
+        <div class="stat-label">Tracked</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" style="color:var(--orange);">QR</div>
+        <div class="stat-label">Ready</div>
+      </div>
+    </div>
+
+    <!-- Quick Search -->
+    <div class="card">
+      <h3 style="margin-bottom:12px;">Quick Search by Equipment ID</h3>
+      <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="e.g. EQ001" style="text-transform:uppercase;">
+        <button class="btn btn-primary" onclick="doSearch()">🔍</button>
+      </div>
+      <p style="font-size:0.78rem; color:var(--text-muted);">
+        Or <button onclick="setActiveTab('scan')" style="background:none;border:none;color:var(--orange);cursor:pointer;font-weight:600;font-size:0.78rem;font-family:inherit;">scan a QR code</button> to jump straight to the equipment page.
+      </p>
+    </div>
+
+    <!-- Info -->
+    <div class="card">
+      <div class="section-label">How it works</div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:4px;">
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <span style="font-size:1.3rem;">📷</span>
+          <div>
+            <div style="font-weight:600; font-size:0.875rem;">Scan QR Code</div>
+            <div style="font-size:0.78rem; color:var(--text-muted);">Point your camera at any equipment QR label — opens the equipment page instantly.</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <span style="font-size:1.3rem;">📋</span>
+          <div>
+            <div style="font-weight:600; font-size:0.875rem;">View History</div>
+            <div style="font-size:0.78rem; color:var(--text-muted);">See full maintenance history, bearing details, last service date.</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:flex-start;">
+          <span style="font-size:1.3rem;">✍️</span>
+          <div>
+            <div style="font-weight:600; font-size:0.875rem;">Add Records</div>
+            <div style="font-size:0.78rem; color:var(--text-muted);">Submit maintenance records — they go to admin for approval before saving.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-home -->
+
+  <!-- ── SCAN ─────────────────────────────────────────────────────────────── -->
+  <div id="tab-scan" class="tab-section" style="display:none;">
+
+    <div class="card">
+      <h2 style="margin-bottom:16px;">📷 Scan QR Code</h2>
+
+      <video id="video" playsinline></video>
+
+      <div class="btn-group" style="margin-bottom:12px;">
+        <button class="btn btn-primary"   id="startScanBtn" onclick="startScan()">▶ Start Camera</button>
+        <button class="btn btn-ghost"     id="stopScanBtn"  onclick="stopScan()" style="display:none;">■ Stop</button>
+      </div>
+
+      <input type="file" id="qrFileInput" accept="image/*" onchange="scanFromFile()" style="display:none;">
+      <button class="btn btn-ghost btn-block" onclick="document.getElementById('qrFileInput').click()">
+        🖼️ Upload QR Image from Gallery
+      </button>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:12px;">Or Enter ID Manually</h3>
+      <div class="search-bar">
+        <input type="text" id="searchInput2" placeholder="Equipment ID (e.g. EQ001)" style="text-transform:uppercase;"
+               onkeydown="if(event.key==='Enter'){goToEquipment(this.value);}">
+        <button class="btn btn-primary" onclick="goToEquipment(document.getElementById('searchInput2').value)">Go →</button>
+      </div>
+    </div>
+
+  </div><!-- /tab-scan -->
+
+  <!-- ── BROWSE ───────────────────────────────────────────────────────────── -->
+  <div id="tab-browse" class="tab-section" style="display:none;">
+
+    <div class="search-bar">
+      <input type="text" id="browseSearch" placeholder="Search by name or ID…">
+    </div>
+
+    <div id="equipList">
+      <div class="spinner"></div>
+      <div class="loading-text">Loading equipment…</div>
+    </div>
+
+  </div><!-- /tab-browse -->
+
+</div><!-- /page -->
+
+<footer class="footer">
+  NSL Equipment History v3.0 &nbsp;·&nbsp; MRN Group
+</footer>
+
+<!-- jsQR -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/home.js"></script>
+</body>
+</html>
